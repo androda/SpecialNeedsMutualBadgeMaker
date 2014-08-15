@@ -19,7 +19,6 @@ import com.itextpdf.text.html.WebColors;
 import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
-import com.specialneedsmutual.badgemaker.BadgeMakerWindow42;
 import com.specialneedsmutual.badgemaker.utilities.PropertyFileReader;
 
 /**
