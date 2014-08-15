@@ -1,0 +1,9 @@
+If you don't need to change any settings (settings as in picture placement, font size, etc) then use the specialNeedsMutualBadgeMaker.jar.
+
+Run this command on your command prompt:
+java -jar specialNeedsMutualBadgeMaker.jar
+
+If you need to make changes to picture or name positioning, font sizing, or whatever else, then it's a little more complex.  Copy these files into a folder somewhere (make sure they are all at the same level in the folder): specialNeedsMutualBadgeMaker_needsExternalProps.jar, itextpdf-5.4.6-SNAPSHOT.jar, resources/snmBadge.properties.  Make your changes to snmBadge.properties and save.
+
+Open a command prompt and 'cd' into the directory where these files are.  Then run this command to start the badge maker:
+java -cp specialNeedsMutualBadgeMaker_needsExternalProps.jar;itextpdf-5.4.6-SNAPSHOT.jar;. com.specialneedsmutual.badgemaker.BadgeMakerWindow
