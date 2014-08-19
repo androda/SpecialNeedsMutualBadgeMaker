@@ -7,24 +7,25 @@
 
 ---USING THE BADGE MAKER---
 -Running the badge maker:
-If you don't need to change any settings (settings as in picture placement, font size, etc) then use the specialNeedsMutualBadgeMaker.jar.
-
-Run this command on your command prompt:
-java -jar specialNeedsMutualBadgeMaker.jar
-
-If you need to make changes to picture or name positioning, font sizing, or whatever else, then it's a little more complex.  Copy these files into a folder somewhere (make sure they are all at the same level in the folder): specialNeedsMutualBadgeMaker_needsExternalProps.jar, itextpdf-5.4.6-SNAPSHOT.jar, resources/snmBadge.properties.  Make your changes to snmBadge.properties and save.
-
-Open a command prompt and 'cd' into the directory where these files are.  Then run this command to start the badge maker:
-java -cp specialNeedsMutualBadgeMaker_needsExternalProps.jar;itextpdf-5.4.6-SNAPSHOT.jar;. com.specialneedsmutual.badgemaker.BadgeMakerWindow
+"Double click on the specialNeedsMutualBadgeMaker.jar" file
 
 -BADGE MAKER INTERACTION
 -First, select the image source directory - this is where all pictures will come from in the generated PDF.  You cannot select multiple directories.
+
 -You will be shown a summary of the total number of images discovered and how many pages it will take to create the badges.  3 badges fit on each page.
+
 -Next, choose your settings.  If you have not scaled your images down to 126 pixels by 158 pixels, you will need to use the 'auto-scale pictures' option or the badges will look terrible.  This will make badge generation take much longer.
+
 -If you want to 'Detect Badge Type From Picture Naming' then you need to give each name badge a prefix to tell the badge maker if it's an adult leader, youth counselor, or special needs youth.  The prefix for Adult Leaders is 'A_' (without the '').  The prefix for Youth counselors is 'Y_' (without the '') and the prefix for Special Needs Youth is 'S_' (without the '').  You can then place all name badges in the same directory and the Badge Maker will auto-sort and auto-rename them to remove the type prefix.
+
 -If you don't want to auto-detect badge type, then sort the three types into their own folders and use the selector for which type you want - 'Adult Leader', 'Youth Counselor', or 'Special Needs Youth'. 
+
 -Once you have made all your selections, click 'Make Badges' and wait for the process to complete.
+
 -I have attempted to make a progress bar which shows how much of the process is complete, but I don't know if it's working properly just yet.  Making 80 or 90 badges doesn't take very long if you are NOT using the auto-scale option.  If you are auto-scaling then all bets are off for how long it will take.  Depending on the speed of your computer it could be minutes or hours.
+
+-If you need to change settings like font size or location of the image or whatever, edit the 'resources/snmBadge.properties file'. Use the 'Change Settings' button to select this file after you have updated it.
+
 --NOTES--
 -Using the 'Auto-Scale Pictures' option will more than double the time it takes to make each badge.  It's very convenient, but takes longer.  It does NOT re-scale the original images.  It copies the original and sizes it down before using it to make the badge.
 
