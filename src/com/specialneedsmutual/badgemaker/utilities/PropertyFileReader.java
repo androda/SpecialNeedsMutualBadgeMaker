@@ -16,15 +16,15 @@ public class PropertyFileReader {
 	private static final Properties PROPS = new Properties();
 
 	/**
-	 * Initializes the property file reader
+	 * Initializes the property file reader with the specified Properties file
 	 * 
 	 * @return null if no errors. An error string if there were problems.
 	 */
-	public static String initialize() {
-		try (InputStream inStream = PropertyFileReader.class
-				.getResourceAsStream("/snmBadge.properties")) {
+	public static String initialize(InputStream propertiesStream) {
+		try {
 			PROPS.clear();
-			PROPS.load(inStream);
+			PROPS.load(propertiesStream);
+			propertiesStream.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			return e.getMessage();

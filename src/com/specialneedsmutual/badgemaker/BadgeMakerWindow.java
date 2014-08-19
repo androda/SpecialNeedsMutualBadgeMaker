@@ -8,14 +8,13 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
 import javax.swing.JButton;
@@ -30,8 +29,6 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 
-import com.ibm.icu.util.Calendar;
-import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.PageSize;
@@ -53,6 +50,8 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 	static final String btnChooseSourceActionCommand = "ChooseSourceDir";
 	JButton btnMakeBadges;
 	static final String btnMakeBadgesActionCommand = "MakeBadges";
+	JButton btnChangeSettings;
+	static final String btnChangeSettingsActionCommand = "ChangeSettings";
 	JCheckBox chckbxDetectBadgeType;
 	static final String chckbxDetectBadgeTypeActionCommand = "DetectBadgeType";
 	JCheckBox chckbxAutoscalePictures;
@@ -114,6 +113,17 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 								.setText("License Agreement Accepted");
 					} else {
 						System.exit(0);
+					}
+					//
+					// Load the default (built-in) Properties file
+					//
+					String propertyInitErrors = PropertyFileReader.initialize(BadgeMakerWindow.class
+							.getResourceAsStream("/snmBadge.properties"));
+					if (propertyInitErrors != null) {
+						window.errorsArea.setText(String
+								.format("%s%nError when trying to read from properties: %n%s",
+										window.errorsArea.getText(),
+										propertyInitErrors));
 					}
 
 				} catch (Exception e) {
@@ -237,6 +247,14 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 		lblLicenseAgreementAccept.setBounds(12, 140, 269, 16);
 		frmSnmBadgeMaker.getContentPane().add(lblLicenseAgreementAccept);
 
+		btnChangeSettings = new JButton("Change Settings");
+		btnChangeSettings.addActionListener(BadgeMakerWindow.this);
+		btnChangeSettings.setActionCommand(btnChangeSettingsActionCommand);
+		btnChangeSettings
+				.setToolTipText("Allows you to select a new Properties file from which to read name badge settings.  You must use this button every time you make changes to the settings.");
+		btnChangeSettings.setBounds(174, 380, 155, 25);
+		frmSnmBadgeMaker.getContentPane().add(btnChangeSettings);
+
 	}
 
 	@Override
@@ -257,7 +275,7 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 							Integer.toString(sourceInfo.numberOfImages));
 					informationText += String.format("%nNumber of pages: %s",
 							sourceInfo.numberOfPages);
-					progressBar.setMaximum(sourceInfo.numberOfImages);
+					progressBar.setMaximum(100);
 					progressBar.setValue(0);
 				} catch (IOException e1) {
 					errorsArea.setText(String.format("%s%n%s",
@@ -279,6 +297,26 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 			MakeBadgesDocument makeDoc = new MakeBadgesDocument(sourceInfo,
 					detectBadgeTypeFromName, autoScalePictures);
 			makeDoc.execute();
+		} else if (actionCommand.equals(btnChangeSettingsActionCommand)) {
+			// Pop up a file picker
+			JFileChooser fileChooser = new JFileChooser();
+			fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+			int returnValue = fileChooser.showOpenDialog(this);
+			if (returnValue == JFileChooser.APPROVE_OPTION) {
+				try {
+					File selected = fileChooser.getSelectedFile();
+					// Get the InputStream
+					FileInputStream propertiesFile = new FileInputStream(
+							selected);
+
+					// Force the PropertyFileReader to refresh
+					PropertyFileReader.initialize(propertiesFile);
+				} catch (Exception e2) {
+					errorsArea.setText(String.format("%s%n%s",
+							errorsArea.getText(), e2.getMessage()));
+					e2.printStackTrace();
+				}
+			}
 		} else if (actionCommand.equals(chckbxDetectBadgeTypeActionCommand)) {
 			if (chckbxDetectBadgeType.isSelected()) {
 				detectBadgeTypeFromName = true;
@@ -383,17 +421,6 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 			// /
 			// The progress bar defaults to a max of 100, so do up to 99%
 			int progressInterval = 99 / this.sourceInfo.numberOfImages;
-
-			// /
-			// /Initialize the PropertyReader in case any properties have been
-			// changed
-			// /
-			String propertyInitErrors = PropertyFileReader.initialize();
-			if (propertyInitErrors != null) {
-				errorsArea.setText(String.format(
-						"%s%nError when trying to read from properties: %n%s",
-						errorsArea.getText(), propertyInitErrors));
-			}
 
 			// /
 			// /Read in the relevant properties constants
@@ -509,95 +536,6 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 				progressBar.setValue(progress);
 			}
 		}
-	}
-
-	/**
-	 * Makes the badges, assuming all necessary information is available.
-	 */
-	void makeBadges() {
-
-		Future<PdfPTable> future;
-
-		SnmNameBadge nameBadge;
-		Document overallDocument;
-		PdfPTable badgeTable;
-		PdfPTable overallTable;
-		PdfWriter writer;
-		BaseColor badgeBackgroundColor;
-		int overallTableWidthPercent;
-		int overallTableLeftColumnPercent;
-		int overallTableRightColumnPercent;
-		Date startTime = Calendar.getInstance().getTime();
-		Date endTime;
-		// ImageIO.setUseCache(false);
-		errorsArea
-				.setText("Any errors in creating the badges will appear here.");
-		String propertyInitErrors = PropertyFileReader.initialize();
-		if (propertyInitErrors != null) {
-			errorsArea.setText(String.format(
-					"%s%nError when trying to read from properties: %n%s",
-					errorsArea.getText(), propertyInitErrors));
-		}
-
-		overallTableWidthPercent = Integer.parseInt(PropertyFileReader
-				.getProperty("overallTableWidthPercent", "100"));
-		overallTableLeftColumnPercent = Integer.parseInt(PropertyFileReader
-				.getProperty("overallTableLeftColumnPercent", "50"));
-		overallTableRightColumnPercent = Integer.parseInt(PropertyFileReader
-				.getProperty("overallTableRightColumnPercent", "50"));
-
-		overallDocument = new Document(PageSize.LETTER);
-
-		overallTable = new PdfPTable(new float[] {
-				overallTableLeftColumnPercent, overallTableRightColumnPercent });
-		overallTable.setWidthPercentage(overallTableWidthPercent);
-		overallTable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
-
-		if (sourceInfo == null || sourceInfo.sourceDir.isEmpty()) {
-			errorsArea
-					.setText("Please select a source directory before making badges.");
-			return;
-		}
-
-		try (FileOutputStream outputStream = new FileOutputStream(
-				sourceInfo.sourceDir + "/badgesPdf.pdf")) {
-			writer = PdfWriter.getInstance(overallDocument, outputStream);
-			overallDocument.open();
-
-			for (String filename : sourceInfo.childFiles) {
-				nameBadge = new SnmNameBadge(sourceInfo.sourceDir, filename,
-						detectBadgeTypeFromName, autoScalePictures);
-
-				badgeTable = nameBadge.getBadgeTable();
-
-				// badgeBackgroundColor = getBadgeBackgroundColor(nameBadge);
-				// badgeTable.getDefaultCell().setBackgroundColor(
-				// badgeBackgroundColor);
-
-				overallTable.addCell(badgeTable);
-				overallTable.addCell(badgeTable);
-			}
-			overallDocument.add(overallTable);
-			overallDocument.close();
-			writer.flush();
-			writer.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-			errorsArea.setText(String.format("%s%n%s", errorsArea.getText(),
-					e.getMessage()));
-		} finally {
-			// TODO: THIS is where you rename all the name badges at once.
-			// Don't rename them as you go along, because there might have been
-			// an error.
-			// An error mid-process would leave you with some badges renamed,
-			// and others not.
-
-			endTime = Calendar.getInstance().getTime();
-			errorsArea.setText(String.format(
-					"%s%nStart Time: %s%nEnd Time: %s", errorsArea.getText(),
-					startTime.toString(), endTime.toString()));
-		}
-
 	}
 
 	/**
