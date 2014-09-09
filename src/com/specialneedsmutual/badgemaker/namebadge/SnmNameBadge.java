@@ -304,17 +304,17 @@ public class SnmNameBadge {
 	Font getFont() {
 		Font theFont;
 		int fontSizeNamesLessThan5Letters = Integer.parseInt(PropertyFileReader
-				.getProperty("fontSizeNamesLessThan5Letters", "36"));
+				.getProperty("fontSizeNamesLessThan5Letters", "34"));
 		int fontSizeNames6LettersLongOrLess = Integer
 				.parseInt(PropertyFileReader.getProperty(
-						"fontSizeNames6LettersLongOrLess", "32"));
+						"fontSizeNames6LettersLongOrLess", "31"));
 		int fontSizeNames7or8LettersLong = Integer.parseInt(PropertyFileReader
-				.getProperty("fontSizeNames7or8LettersLong", "29"));
+				.getProperty("fontSizeNames7or8LettersLong", "24"));
 		int fontSizeNames9or10LettersLong = Integer.parseInt(PropertyFileReader
-				.getProperty("fontSizeNames9or10LettersLong", "26"));
+				.getProperty("fontSizeNames9or10LettersLong", "21"));
 		int fontSizeNames11or12LettersLone = Integer
 				.parseInt(PropertyFileReader.getProperty(
-						"fontSizeNames11or12LettersLone", "22"));
+						"fontSizeNames11or12LettersLong", "20"));
 		int fontSizeNamesMoreThan12LettersLong = Integer
 				.parseInt(PropertyFileReader.getProperty(
 						"fontSizeNamesMoreThan12LettersLong", "18"));
