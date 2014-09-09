@@ -41,7 +41,9 @@ public class SourceDirectoryInfo {
 
 			@Override
 			public boolean accept(File dir, String filename) {
-				if (filename.endsWith(".jpg")) {
+				if(filename.startsWith("._")){
+					return false;
+				} else if (filename.endsWith(".jpg")) {
 					return true;
 				} else if (filename.endsWith(".JPG")) {
 					return true;
