@@ -1,6 +1,5 @@
 package com.specialneedsmutual.badgemaker.namebadge;
 
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -29,42 +28,44 @@ import com.specialneedsmutual.badgemaker.utilities.PropertyFileReader;
  */
 public class SnmNameBadge {
 
-	BadgeType					badgeType;
-	BaseColor					badgeColor;
-	boolean						detectBadgeTypeFromName;
-	boolean						autoScaleImages;
-	Font						font;
-	File						currentFile;
-	File						renamedFile;
-	Image						image;
-	int							nameLength;
-	PdfPTable					badgeTable;
-	String						canonicalFilePath;
-	String						name;
-	String[]					nameParts;
-	String						fileExtension;
-	String						fileName;
-	String						fileNameWithoutPrefix	= null;
-	String						filePath;
-	String						spaceInNameDelimiter;
+	BadgeType badgeType;
+	BaseColor badgeColor;
+	boolean detectBadgeTypeFromName;
+	boolean autoScaleImages;
+	Font font;
+	File currentFile;
+	File renamedFile;
+	Image image;
+	int nameLength;
+	PdfPTable badgeTable;
+	String canonicalFilePath;
+	String name;
+	String[] nameParts;
+	String fileExtension;
+	String fileName;
+	String fileNameWithoutPrefix = null;
+	String filePath;
+	String spaceInNameDelimiter;
 
-	private static final String	fileSeparator			= System.getProperty("file.separator", "/");
+	private static final String fileSeparator = System.getProperty(
+			"file.separator", "/");
 
 	/**
 	 * Creates a Badge instance. DOES NOT set the badge background color.
 	 * 
-	 * @param parentFolderPath The path to the badge's parent folder, like "c:\files\SNM"
+	 * @param parentFolderPath The path to the badge's parent folder, like
+	 *            "c:\files\SNM"
 	 * @param pathSeparator The path separator, like '/' or '\'
-	 * @param fileName The name of the file, like "A_John Doe.jpg" or "Sally Smith.jpg"
+	 * @param fileName The name of the file, like "A_John Doe.jpg" or
+	 *            "Sally Smith.jpg"
 	 * @throws IOException Caused by inability to get the image
 	 * @throws MalformedURLException Caused by a bad file path
 	 * @throws BadElementException Caused by Something I don't really understand
 	 */
-	public SnmNameBadge(String parentFolderPath,
-			String fileName,
-			boolean determineBageColorFromFileNaming,
-			boolean autoScaleImages) {
-		spaceInNameDelimiter = PropertyFileReader.getProperty("spaceInNameDelimiter", "%");
+	public SnmNameBadge(String parentFolderPath, String fileName,
+			boolean determineBageColorFromFileNaming, boolean autoScaleImages) {
+		spaceInNameDelimiter = PropertyFileReader.getProperty(
+				"spaceInNameDelimiter", "%");
 		this.autoScaleImages = autoScaleImages;
 		this.fileName = fileName;
 		this.filePath = parentFolderPath;
@@ -75,27 +76,60 @@ public class SnmNameBadge {
 
 	// Found here:
 	// http://stackoverflow.com/questions/244164/how-can-i-resize-an-image-using-java
-	BufferedImage
-			createResizedImage(String filePath, int scaledWidth, int scaledHeight) throws IOException {
+	// See one of the comments. The original Graphics2D approach didn't work.
+	/**
+	 * Scales the image specified by filePath. Preserves the aspect ratio, and
+	 * tries for a best-fit on the image height and width.
+	 * 
+	 * @param filePath The path to the image file
+	 * @param scaledWidth The width to scale to (Resulting BufferedImage will be
+	 *            no wider than this)
+	 * @param scaledHeight The height to scale to (Resulting BufferedImage will
+	 *            be no taller than this)
+	 * @return BufferedImage scaled to as close to scaledWith and scaledHeight
+	 *         as possible while(preserving original aspect ratio
+	 * @throws IOException
+	 */
+	java.awt.Image createResizedImage(String filePath, int scaledWidth,
+			int scaledHeight) throws IOException {
 		File imageFile;
+		boolean portrait = false;
 		BufferedImage originalImageBuffer;
-		BufferedImage scaledImageBuffer;
-		Graphics2D renderer;
-		int imageType = BufferedImage.TYPE_INT_ARGB;
+		int originalImageHeight;
+		int originalImageWidth;
+		int scaledImageHeight;
+		int scaledImageWidth;
+		double originalAspectRatio;
 
 		imageFile = new File(filePath);
 		originalImageBuffer = ImageIO.read(imageFile);
 
-		scaledImageBuffer = new BufferedImage(scaledWidth, scaledHeight, imageType);
-		renderer = scaledImageBuffer.createGraphics();
-		renderer.drawImage(originalImageBuffer, 0, 0, scaledWidth, scaledHeight, null);
-		renderer.dispose();
-		return scaledImageBuffer;
+		originalImageHeight = originalImageBuffer.getHeight();
+		originalImageWidth = originalImageBuffer.getWidth();
+
+		if (originalImageHeight > originalImageWidth) {
+			portrait = true;
+		}
+
+		originalAspectRatio = (double) originalImageHeight
+				/ (double) originalImageWidth;
+
+		if (portrait) {
+			scaledImageHeight = scaledHeight;
+			scaledImageWidth = (int) (scaledHeight / originalAspectRatio);
+
+		} else {
+			scaledImageWidth = scaledWidth;
+			scaledImageHeight = (int) (originalAspectRatio * scaledImageWidth);
+		}
+
+		return originalImageBuffer.getScaledInstance(scaledImageWidth,
+				scaledImageHeight, 0);
 	}
 
 	/**
-	 * Creates the badge table from the settings passed in (auto-determines whether to scale the
-	 * image)
+	 * Creates the badge table from the settings passed in (auto-determines
+	 * whether to scale the image)
 	 * 
 	 * @throws IOException
 	 * @throws BadElementException
@@ -106,16 +140,15 @@ public class SnmNameBadge {
 		name = getName();
 		font = getFont();
 
-		int pictureAbsoluteWidth = Integer.parseInt(PropertyFileReader.getProperty("pictureAbsoluteWidth",
-				"126"));
-		int pictureAbsoluteHeight = Integer.parseInt(PropertyFileReader.getProperty("pictureAbsoluteHeight",
-				"158"));
+		int pictureAbsoluteWidth = Integer.parseInt(PropertyFileReader
+				.getProperty("pictureAbsoluteWidth", "126"));
+		int pictureAbsoluteHeight = Integer.parseInt(PropertyFileReader
+				.getProperty("pictureAbsoluteHeight", "157"));
 
 		if (autoScaleImages) {
-			image = Image.getInstance(createResizedImage(canonicalFilePath,
-					pictureAbsoluteWidth,
-					pictureAbsoluteHeight),
-					null);
+			image = Image.getInstance(
+					createResizedImage(canonicalFilePath, pictureAbsoluteWidth,
+							pictureAbsoluteHeight), null);
 		} else {
 			image = Image.getInstance(canonicalFilePath);
 		}
@@ -153,7 +186,8 @@ public class SnmNameBadge {
 	/**
 	 * Returns the full canonical file path for this name badge's picture
 	 * 
-	 * @return The string, like "c:\somewhere\stuff\picture.jpg" or "/usr/bob/pictures/picture.jpg"
+	 * @return The string, like "c:\somewhere\stuff\picture.jpg" or
+	 *         "/usr/bob/pictures/picture.jpg"
 	 */
 	public String getCanonicalFilepath() {
 		return this.canonicalFilePath;
@@ -182,33 +216,36 @@ public class SnmNameBadge {
 		fileExtension = canonicalFilePath.substring(dotIndex);
 
 		if (separatorIndex < 0 || dotIndex < 0) {
-			throw new IllegalArgumentException(String.format("The file path '%s' did not contain a '%s' or '%s'",
-					canonicalFilePath,
-					fileSeparator,
-					"."));
+			throw new IllegalArgumentException(String.format(
+					"The file path '%s' did not contain a '%s' or '%s'",
+					canonicalFilePath, fileSeparator, "."));
 		} else {
-			substrung = canonicalFilePath.substring((separatorIndex + 1), dotIndex);
+			substrung = canonicalFilePath.substring((separatorIndex + 1),
+					dotIndex);
 			return substrung.split("\\s+");
 		}
 	}
 
 	/**
-	 * Returns the full name as a return-delineated string. Cuts out 'A_' (type prefix) and such.
+	 * Returns the full name as a return-delineated string. Cuts out 'A_' (type
+	 * prefix) and such.
 	 * 
 	 * @return "Bob\r\n\r\nDole" and such
 	 */
 	String getNameWithoutTypePrefix() {
-		final String adultLeaderBadgeTag = PropertyFileReader.getProperty("adultLeaderBadgeTag",
-				"A_");
-		final String youthCounselorBadgeTag = PropertyFileReader.getProperty("youthCounselorBadgeTag",
-				"Y_");
-		final String specialNeedsYouthBadgeTag = PropertyFileReader.getProperty("specialNeedsYouthBadgeTag",
-				"S_");
+		final String adultLeaderBadgeTag = PropertyFileReader.getProperty(
+				"adultLeaderBadgeTag", "A_");
+		final String youthCounselorBadgeTag = PropertyFileReader.getProperty(
+				"youthCounselorBadgeTag", "Y_");
+		final String specialNeedsYouthBadgeTag = PropertyFileReader
+				.getProperty("specialNeedsYouthBadgeTag", "S_");
 		String name = "";
 		for (String namePart : nameParts) {
-			name += dealWithSpaceInNameDelimiter(namePart.replace(adultLeaderBadgeTag, "")
+			name += dealWithSpaceInNameDelimiter(namePart
+					.replace(adultLeaderBadgeTag, "")
 					.replace(youthCounselorBadgeTag, "")
-					.replace(specialNeedsYouthBadgeTag, "")) + "\r\n\r\n";
+					.replace(specialNeedsYouthBadgeTag, ""))
+					+ "\r\n\r\n";
 		}
 		return name;
 	}
@@ -230,7 +267,8 @@ public class SnmNameBadge {
 	 * Converts 'spaceInNameDelimiter' into ' '
 	 * 
 	 * @param namePart The name part chunk (previously split on ' ')
-	 * @return The string where all the space delimiters have been replaced with a space
+	 * @return The string where all the space delimiters have been replaced with
+	 *         a space
 	 */
 	String dealWithSpaceInNameDelimiter(String namePart) {
 		if (namePart.contains(spaceInNameDelimiter)) {
@@ -258,45 +296,56 @@ public class SnmNameBadge {
 	}
 
 	/**
-	 * Gets the Font for this name badge based on the length of the person's name
+	 * Gets the Font for this name badge based on the length of the person's
+	 * name
 	 * 
 	 * @return The Font to use on the badge
 	 */
 	Font getFont() {
 		Font theFont;
-		int fontSizeNamesLessThan5Letters = Integer.parseInt(PropertyFileReader.getProperty("fontSizeNamesLessThan5Letters",
-				"36"));
-		int fontSizeNames6LettersLongOrLess = Integer.parseInt(PropertyFileReader.getProperty("fontSizeNames6LettersLongOrLess",
-				"32"));
-		int fontSizeNames7or8LettersLong = Integer.parseInt(PropertyFileReader.getProperty("fontSizeNames7or8LettersLong",
-				"29"));
-		int fontSizeNames9or10LettersLong = Integer.parseInt(PropertyFileReader.getProperty("fontSizeNames9or10LettersLong",
-				"26"));
-		int fontSizeNames11or12LettersLone = Integer.parseInt(PropertyFileReader.getProperty("fontSizeNames11or12LettersLone",
-				"22"));
-		int fontSizeNamesMoreThan12LettersLong = Integer.parseInt(PropertyFileReader.getProperty("fontSizeNamesMoreThan12LettersLong",
-				"18"));
+		int fontSizeNamesLessThan5Letters = Integer.parseInt(PropertyFileReader
+				.getProperty("fontSizeNamesLessThan5Letters", "36"));
+		int fontSizeNames6LettersLongOrLess = Integer
+				.parseInt(PropertyFileReader.getProperty(
+						"fontSizeNames6LettersLongOrLess", "32"));
+		int fontSizeNames7or8LettersLong = Integer.parseInt(PropertyFileReader
+				.getProperty("fontSizeNames7or8LettersLong", "29"));
+		int fontSizeNames9or10LettersLong = Integer.parseInt(PropertyFileReader
+				.getProperty("fontSizeNames9or10LettersLong", "26"));
+		int fontSizeNames11or12LettersLone = Integer
+				.parseInt(PropertyFileReader.getProperty(
+						"fontSizeNames11or12LettersLone", "22"));
+		int fontSizeNamesMoreThan12LettersLong = Integer
+				.parseInt(PropertyFileReader.getProperty(
+						"fontSizeNamesMoreThan12LettersLong", "18"));
 
 		if (nameLength < 5) {
-			theFont = FontFactory.getFont(BaseFont.HELVETICA, fontSizeNamesLessThan5Letters);
+			theFont = FontFactory.getFont(BaseFont.HELVETICA,
+					fontSizeNamesLessThan5Letters);
 		} else if (nameLength <= 6) {
-			theFont = FontFactory.getFont(BaseFont.HELVETICA, fontSizeNames6LettersLongOrLess);
+			theFont = FontFactory.getFont(BaseFont.HELVETICA,
+					fontSizeNames6LettersLongOrLess);
 		} else if (nameLength <= 8) {
-			theFont = FontFactory.getFont(BaseFont.HELVETICA, fontSizeNames7or8LettersLong);
+			theFont = FontFactory.getFont(BaseFont.HELVETICA,
+					fontSizeNames7or8LettersLong);
 		} else if (nameLength <= 10) {
-			theFont = FontFactory.getFont(BaseFont.HELVETICA, fontSizeNames9or10LettersLong);
+			theFont = FontFactory.getFont(BaseFont.HELVETICA,
+					fontSizeNames9or10LettersLong);
 		} else if (nameLength <= 12) {
-			theFont = FontFactory.getFont(BaseFont.HELVETICA, fontSizeNames11or12LettersLone);
+			theFont = FontFactory.getFont(BaseFont.HELVETICA,
+					fontSizeNames11or12LettersLone);
 		} else {
-			theFont = FontFactory.getFont(BaseFont.HELVETICA, fontSizeNamesMoreThan12LettersLong);
+			theFont = FontFactory.getFont(BaseFont.HELVETICA,
+					fontSizeNamesMoreThan12LettersLong);
 		}
 
 		return theFont;
 	}
 
 	/**
-	 * Determines the name badge background color based either on the user's selection or by parsing
-	 * the filename for tags. Also takes care of adding things to the renameOperations list.
+	 * Determines the name badge background color based either on the user's
+	 * selection or by parsing the filename for tags. Also takes care of adding
+	 * things to the renameOperations list.
 	 * 
 	 * @param badge The SnmNameBadge to check
 	 * @return The BaseColor which should be used as background
@@ -304,37 +353,44 @@ public class SnmNameBadge {
 	BaseColor getBadgeBackgroundColor() {
 		String badgeBackgroundColorString = null;
 		if (detectBadgeTypeFromName) {
-			final String adultLeaderBadgeTag = PropertyFileReader.getProperty("adultLeaderBadgeTag",
-					"A_");
-			final String youthCounselorBadgeTag = PropertyFileReader.getProperty("youthCounselorBadgeTag",
-					"Y_");
-			final String specialNeedsYouthBadgeTag = PropertyFileReader.getProperty("specialNeedsYouthBadgeTag",
-					"S_");
+			final String adultLeaderBadgeTag = PropertyFileReader.getProperty(
+					"adultLeaderBadgeTag", "A_");
+			final String youthCounselorBadgeTag = PropertyFileReader
+					.getProperty("youthCounselorBadgeTag", "Y_");
+			final String specialNeedsYouthBadgeTag = PropertyFileReader
+					.getProperty("specialNeedsYouthBadgeTag", "S_");
 
 			if (fileName.contains(adultLeaderBadgeTag)) {
-				badgeBackgroundColorString = PropertyFileReader.getProperty("badgeBackgroundColorAdultLeader",
-						"#FFFFFF");
-				fileNameWithoutPrefix = fileName.replace(adultLeaderBadgeTag, "");
+				badgeBackgroundColorString = PropertyFileReader.getProperty(
+						"badgeBackgroundColorAdultLeader", "#FFFFFF");
+				fileNameWithoutPrefix = fileName.replace(adultLeaderBadgeTag,
+						"");
 			} else if (fileName.contains(youthCounselorBadgeTag)) {
-				badgeBackgroundColorString = PropertyFileReader.getProperty("badgeBackgroundColorYouthCounselor",
-						"#FFFA83");
-				fileNameWithoutPrefix = fileName.replace(youthCounselorBadgeTag, "");
+				badgeBackgroundColorString = PropertyFileReader.getProperty(
+						"badgeBackgroundColorYouthCounselor", "#FFFA83");
+				fileNameWithoutPrefix = fileName.replace(
+						youthCounselorBadgeTag, "");
 			} else if (fileName.contains(specialNeedsYouthBadgeTag)) {
-				badgeBackgroundColorString = PropertyFileReader.getProperty("badgeBackgroundColorSpecialNeedsYouth",
-						"#CADBFE");
-				fileNameWithoutPrefix = fileName.replace(specialNeedsYouthBadgeTag, "");
+				badgeBackgroundColorString = PropertyFileReader.getProperty(
+						"badgeBackgroundColorSpecialNeedsYouth", "#CADBFE");
+				fileNameWithoutPrefix = fileName.replace(
+						specialNeedsYouthBadgeTag, "");
 			}
 
 			// If the background color string is still null, then the badge type
 			// was not specified.
 			// Kill the process.
-			if (badgeBackgroundColorString == null || fileNameWithoutPrefix == null) {
-				throw new IllegalStateException(String.format("Name badge picture '%s' did not contain a filename tag. Tags are necessary for determining badge type.",
-						filePath + fileSeparator + fileName));
+			if (badgeBackgroundColorString == null
+					|| fileNameWithoutPrefix == null) {
+				throw new IllegalStateException(
+						String.format(
+								"Name badge picture '%s' did not contain a filename tag. Tags are necessary for determining badge type.",
+								filePath + fileSeparator + fileName));
 			}
 
 			currentFile = new File(filePath + fileSeparator + fileName);
-			renamedFile = new File(filePath + fileSeparator + fileNameWithoutPrefix);
+			renamedFile = new File(filePath + fileSeparator
+					+ fileNameWithoutPrefix);
 			return WebColors.getRGBColor(badgeBackgroundColorString);
 		}
 		return badgeColor;
@@ -343,37 +399,39 @@ public class SnmNameBadge {
 	/**
 	 * Builds the badgeTable based on the image file and name of the person
 	 * 
-	 * @return The completed badge PdfPTable, ready to be inserted into the overall pdf
+	 * @return The completed badge PdfPTable, ready to be inserted into the
+	 *         overall pdf
 	 */
 	PdfPTable buildBadgeTable() {
-		int badgeTableOverallWidthPercent = Integer.parseInt(PropertyFileReader.getProperty("badgeTableOverallWidthPercent",
-				"100"));
+		int badgeTableOverallWidthPercent = Integer.parseInt(PropertyFileReader
+				.getProperty("badgeTableOverallWidthPercent", "100"));
 
-		int badgeTableLeftColumnPercent = Integer.parseInt(PropertyFileReader.getProperty("badgeTableLeftColumnPercent",
-				"40"));
-		int badgeTableRightColumnPercent = Integer.parseInt(PropertyFileReader.getProperty("badgeTableRightColumnPercent",
-				"60"));
+		int badgeTableLeftColumnPercent = Integer.parseInt(PropertyFileReader
+				.getProperty("badgeTableLeftColumnPercent", "40"));
+		int badgeTableRightColumnPercent = Integer.parseInt(PropertyFileReader
+				.getProperty("badgeTableRightColumnPercent", "60"));
 
-		int imageTopPadding = Integer.parseInt(PropertyFileReader.getProperty("pictureTopPadding",
-				"25"));
-		int imageRightPadding = Integer.parseInt(PropertyFileReader.getProperty("pictureRightPadding",
-				"0"));
-		int imageBottomPadding = Integer.parseInt(PropertyFileReader.getProperty("pictureBottomPadding",
-				"25"));
-		int imageLeftPadding = Integer.parseInt(PropertyFileReader.getProperty("pictureLeftPadding",
-				"25"));
+		int imageTopPadding = Integer.parseInt(PropertyFileReader.getProperty(
+				"pictureTopPadding", "25"));
+		int imageRightPadding = Integer.parseInt(PropertyFileReader
+				.getProperty("pictureRightPadding", "0"));
+		int imageBottomPadding = Integer.parseInt(PropertyFileReader
+				.getProperty("pictureBottomPadding", "25"));
+		int imageLeftPadding = Integer.parseInt(PropertyFileReader.getProperty(
+				"pictureLeftPadding", "25"));
 
-		int nameTopPadding = Integer.parseInt(PropertyFileReader.getProperty("nameTopPadding", "60"));
-		int nameRightPadding = Integer.parseInt(PropertyFileReader.getProperty("nameRightPadding",
-				"0"));
-		int nameBottomPadding = Integer.parseInt(PropertyFileReader.getProperty("nameBottomPadding",
-				"0"));
-		int nameLeftPadding = Integer.parseInt(PropertyFileReader.getProperty("nameLeftPadding",
-				"35"));
+		int nameTopPadding = Integer.parseInt(PropertyFileReader.getProperty(
+				"nameTopPadding", "60"));
+		int nameRightPadding = Integer.parseInt(PropertyFileReader.getProperty(
+				"nameRightPadding", "0"));
+		int nameBottomPadding = Integer.parseInt(PropertyFileReader
+				.getProperty("nameBottomPadding", "0"));
+		int nameLeftPadding = Integer.parseInt(PropertyFileReader.getProperty(
+				"nameLeftPadding", "35"));
 
 		badgeColor = getBadgeBackgroundColor();
-		PdfPTable badgeTable = new PdfPTable(new float[] { badgeTableLeftColumnPercent,
-				badgeTableRightColumnPercent });
+		PdfPTable badgeTable = new PdfPTable(new float[] {
+				badgeTableLeftColumnPercent, badgeTableRightColumnPercent });
 
 		badgeTable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
 		badgeTable.getDefaultCell().setPaddingLeft(-10);

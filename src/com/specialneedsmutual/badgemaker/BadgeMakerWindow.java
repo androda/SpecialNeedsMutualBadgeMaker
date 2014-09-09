@@ -57,7 +57,7 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 	JCheckBox chckbxAutoscalePictures;
 	static final String chckbxAutoScaleActionCommand = "AutoScalePictures";
 	boolean detectBadgeTypeFromName = false;
-	boolean autoScalePictures = false;
+	boolean autoScalePictures = true;
 	JTextArea sourceInfoTextPane;
 	JTextArea errorsArea;
 	BadgeType selectedOutputType = null;
@@ -222,6 +222,7 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 		frmSnmBadgeMaker.getContentPane().add(errorsArea);
 
 		chckbxAutoscalePictures = new JCheckBox("Auto-Scale Pictures");
+		chckbxAutoscalePictures.setSelected(true);
 		chckbxAutoscalePictures.addActionListener(BadgeMakerWindow.this);
 		chckbxAutoscalePictures.setActionCommand(chckbxAutoScaleActionCommand);
 		chckbxAutoscalePictures.setBounds(12, 218, 155, 25);
@@ -296,6 +297,7 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 					.setText("Any errors in creating the badges will appear here.");
 			MakeBadgesDocument makeDoc = new MakeBadgesDocument(sourceInfo,
 					detectBadgeTypeFromName, autoScalePictures);
+			makeDoc.addPropertyChangeListener(this);
 			makeDoc.execute();
 		} else if (actionCommand.equals(btnChangeSettingsActionCommand)) {
 			// Pop up a file picker
@@ -355,6 +357,7 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 	void setControlsDisabled() {
 		btnChooseSourceDirectory.setEnabled(false);
 		btnMakeBadges.setEnabled(false);
+		btnChangeSettings.setEnabled(false);
 		chckbxAutoscalePictures.setEnabled(false);
 		chckbxDetectBadgeType.setEnabled(false);
 		rdbtnAdultLeader.setEnabled(false);
@@ -369,6 +372,7 @@ public class BadgeMakerWindow extends JPanel implements ActionListener,
 	void setControlsEnabled() {
 		btnChooseSourceDirectory.setEnabled(true);
 		btnMakeBadges.setEnabled(true);
+		btnChangeSettings.setEnabled(true);
 		chckbxAutoscalePictures.setEnabled(true);
 		chckbxDetectBadgeType.setEnabled(true);
 		if (!chckbxDetectBadgeType.isSelected()) {
